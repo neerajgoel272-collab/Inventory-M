@@ -142,5 +142,6 @@ def seed_sample_data(app):
 
 if __name__ == '__main__':
     app = create_app()
-    # Bind on all interfaces to avoid localhost/IPv6 resolution issues on Windows.
-    app.run(debug=True, host=Config.host(), port=Config.port())
+    import os
+    port = int(os.environ.get('PORT', Config.port()))
+    app.run(debug=False, host='0.0.0.0', port=port)
