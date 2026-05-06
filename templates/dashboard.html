@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">Good day, {{ current_user.username }} 👋</div>
+    <div class="page-header-sub">{{ current_user.business_name }} — Here's what's happening today</div>
+  </div>
+  <div style="font-size:13px;color:var(--text-muted);" id="clock"></div>
+</div>
+
+<!-- ── KPI Row ──────────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#eff6ff;color:#2563eb;"><i class="bi bi-box-seam"></i></div>
+      <div class="kpi-value">{{ total_products }}</div>
+      <div class="kpi-label">Total Products</div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="kpi-value" style="color:#d97706;">{{ low_stock }}</div>
+      <div class="kpi-label">Low Stock Items</div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#fee2e2;color:#dc2626;"><i class="bi bi-x-circle"></i></div>
+      <div class="kpi-value" style="color:#dc2626;">{{ out_of_stock }}</div>
+      <div class="kpi-label">Out of Stock</div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#d1fae5;color:#059669;"><i class="bi bi-currency-rupee"></i></div>
+      <div class="kpi-value" style="font-size:20px;">₹{{ "{:,.0f}".format(today_revenue) }}</div>
+      <div class="kpi-label">Today's Revenue</div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#ede9fe;color:#7c3aed;"><i class="bi bi-calendar-month"></i></div>
+      <div class="kpi-value" style="font-size:20px;">₹{{ "{:,.0f}".format(monthly_revenue) }}</div>
+      <div class="kpi-label">{{ now.strftime('%B %Y') }}</div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="kpi-card">
+      <div class="kpi-icon" style="background:#f0fdf4;color:#16a34a;"><i class="bi bi-graph-up"></i></div>
+      <div class="kpi-value" style="font-size:20px;">₹{{ "{:,.0f}".format(total_revenue) }}</div>
+      <div class="kpi-label">All-Time Revenue</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row ─────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <!-- 7-day trend -->
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">Revenue — Last 7 Days</span>
+        <span style="font-size:12px;color:var(--text-muted);">Daily sales total</span>
+      </div>
+      <div class="card-body-custom">
+        <canvas id="trendChart" height="110"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category pie -->
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">Inventory by Category</span>
+      </div>
+      <div class="card-body-custom" style="display:flex;align-items:center;justify-content:center;">
+        <canvas id="catChart" height="200" style="max-height:200px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Bottom Row ─────────────────────────────────────────────────────────── -->
+<div class="row g-3">
+  <!-- Top Products -->
+  <div class="col-xl-7">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">🏆 Top Selling Products</span>
+        <a href="/reports" style="font-size:12px;color:var(--primary);text-decoration:none;font-weight:600;">View All →</a>
+      </div>
+      <div class="card-body-custom" style="padding-top:12px;">
+        {% if top_products %}
+          <table class="table-custom" style="width:100%;">
+            <thead>
+              <tr><th>Product</th><th>Units Sold</th><th>Revenue</th><th>Share</th></tr>
+            </thead>
+            <tbody>
+              {% set max_rev = top_products[0].total_revenue if top_products else 1 %}
+              {% for p in top_products %}
+              <tr>
+                <td style="font-weight:600;">{{ p.name }}</td>
+                <td>{{ p.total_sold }}</td>
+                <td style="font-weight:700;color:var(--success);">₹{{ "{:,.0f}".format(p.total_revenue) }}</td>
+                <td style="width:140px;">
+                  <div style="background:#f1f5f9;border-radius:4px;height:8px;overflow:hidden;">
+                    <div style="height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:4px;width:{{ (p.total_revenue / max_rev * 100)|int }}%;"></div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="empty-state"><i class="bi bi-bar-chart d-block"></i>No sales data yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Low Stock Alerts -->
+  <div class="col-xl-5">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">⚠️ Low Stock Alerts</span>
+        <a href="/inventory?status=low" style="font-size:12px;color:var(--primary);text-decoration:none;font-weight:600;">Manage →</a>
+      </div>
+      <div class="card-body-custom" style="padding-top:12px;">
+        {% if low_stock_products %}
+          {% for p in low_stock_products %}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13.5px;font-weight:600;">{{ p.name }}</div>
+              <div style="font-size:11px;color:var(--text-muted);">{{ p.category }}</div>
+            </div>
+            <div style="text-align:right;">
+              {% if p.quantity == 0 %}
+                <span class="badge-status badge-out-stock"><i class="bi bi-x-circle-fill"></i> Out</span>
+              {% else %}
+                <span class="badge-status badge-low-stock"><i class="bi bi-exclamation-triangle-fill"></i> {{ p.quantity }} left</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding:28px;">
+            <i class="bi bi-check-circle" style="color:#059669;font-size:32px;opacity:1;"></i>
+            <div style="margin-top:8px;color:var(--success);font-weight:600;">All products well stocked!</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── 7-Day Trend Chart ──────────────────────────────────────────────────────
+const trendData = {{ seven_days | tojson }};
+new Chart(document.getElementById('trendChart'), {
+  type: 'bar',
+  data: {
+    labels: trendData.map(d => d.date),
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: trendData.map(d => d.revenue),
+      backgroundColor: 'rgba(37,99,235,.15)',
+      borderColor: '#2563eb',
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.05)' },
+           ticks: { callback: v => '₹' + v.toLocaleString() } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Category Pie Chart ─────────────────────────────────────────────────────
+const catData = {{ cat_data | tojson }};
+const COLORS = ['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#be185d'];
+new Chart(document.getElementById('catChart'), {
+  type: 'doughnut',
+  data: {
+    labels: catData.map(c => c.category),
+    datasets: [{
+      data: catData.map(c => c.count),
+      backgroundColor: COLORS,
+      borderWidth: 0,
+      hoverOffset: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } }
+    },
+    cutout: '65%',
+  }
+});
+
+// ── Live Clock ─────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleString('en-IN', {weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+updateClock(); setInterval(updateClock, 1000);
+</script>
+{% endblock %}

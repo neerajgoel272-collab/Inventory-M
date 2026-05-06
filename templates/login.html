@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartStock AI — Sign In / Register</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root { --primary:#2563eb; --secondary:#7c3aed; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family:'Plus Jakarta Sans',sans-serif;
+      background:#060b18; color:#fff; min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .auth-wrapper { display:grid; grid-template-columns:1fr 500px; min-height:100vh; width:100%; }
+
+    /* Left panel */
+    .auth-left {
+      background:radial-gradient(ellipse 70% 60% at 40% 50%, rgba(37,99,235,.25), transparent 70%), #07102a;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:60px; border-right:1px solid rgba(255,255,255,.08);
+    }
+    .auth-left h2 { font-size:36px; font-weight:900; letter-spacing:-1.5px; line-height:1.15; margin-bottom:14px; }
+    .gradient-text { background:linear-gradient(135deg,#60a5fa,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .auth-left p { color:rgba(255,255,255,.5); font-size:14.5px; line-height:1.7; max-width:360px; }
+    .feature-list { margin-top:36px; display:flex; flex-direction:column; gap:12px; width:100%; max-width:380px; }
+    .feature-item {
+      display:flex; align-items:center; gap:12px; padding:13px 16px;
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:12px;
+    }
+    .feature-item i { font-size:18px; color:#60a5fa; }
+    .feature-item span { font-size:13px; color:rgba(255,255,255,.7); font-weight:500; }
+
+    /* Right panel */
+    .auth-right {
+      background:#fff; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; padding:50px 44px; overflow-y:auto;
+    }
+    .form-logo {
+      width:46px; height:46px; border-radius:13px;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      display:flex; align-items:center; justify-content:center;
+      font-size:22px; color:#fff; margin-bottom:20px;
+    }
+
+    /* Tabs */
+    .tabs { display:flex; width:100%; background:#f1f5f9; border-radius:10px; padding:4px; margin-bottom:28px; }
+    .tab-btn {
+      flex:1; padding:9px; border:none; background:transparent; border-radius:8px;
+      font-size:13.5px; font-weight:600; color:#64748b; cursor:pointer; font-family:inherit; transition:all .2s;
+    }
+    .tab-btn.active { background:#fff; color:#0f172a; box-shadow:0 1px 4px rgba(0,0,0,.1); }
+
+    /* Forms */
+    .tab-panel { display:none; width:100%; }
+    .tab-panel.active { display:block; }
+    .form-group { margin-bottom:16px; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    label { display:block; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+    .input-wrap { position:relative; }
+    .input-wrap i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:15px; }
+    input[type=text], input[type=password], input[type=email] {
+      width:100%; padding:11px 13px 11px 38px;
+      border:1.5px solid #e2e8f0; border-radius:9px;
+      font-size:13.5px; font-family:inherit; color:#0f172a; background:#f8fafc;
+      transition:border-color .2s, box-shadow .2s; outline:none;
+    }
+    input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.12); background:#fff; }
+    .remember-row { display:flex; align-items:center; margin-bottom:20px; }
+    .remember-row label { text-transform:none; letter-spacing:0; font-size:13px; color:#475569; margin:0; display:flex; align-items:center; gap:6px; }
+    .btn-submit {
+      width:100%; padding:13px; border:none; border-radius:10px;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      color:#fff; font-size:14.5px; font-weight:700; cursor:pointer;
+      transition:all .2s; font-family:inherit;
+    }
+    .btn-submit:hover { transform:translateY(-1px); box-shadow:0 6px 24px rgba(37,99,235,.35); }
+    .divider { display:flex; align-items:center; gap:10px; margin:18px 0; width:100%; }
+    .divider hr { flex:1; border:none; border-top:1px solid #e2e8f0; }
+    .divider span { font-size:11px; color:#94a3b8; }
+    .demo-btn {
+      width:100%; padding:11px; border-radius:10px; border:1.5px solid #e2e8f0;
+      background:#f8fafc; color:#475569; font-size:13.5px; font-weight:600;
+      cursor:pointer; font-family:inherit; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .demo-btn:hover { border-color:var(--primary); color:var(--primary); background:#eff6ff; }
+    .strength-bar { height:4px; border-radius:2px; margin-top:5px; transition:all .3s; background:#e2e8f0; }
+    .strength-hint { font-size:11px; color:#94a3b8; margin-top:3px; }
+    .flash-list { width:100%; margin-bottom:12px; }
+    .flash-item {
+      padding:9px 13px; border-radius:8px; font-size:13px; font-weight:500;
+      margin-bottom:6px; display:flex; align-items:center; gap:8px;
+    }
+    .flash-danger  { background:#fee2e2; color:#991b1b; }
+    .flash-success { background:#d1fae5; color:#065f46; }
+    .flash-info    { background:#dbeafe; color:#1e40af; }
+    @media(max-width:768px){
+      .auth-wrapper{grid-template-columns:1fr;}
+      .auth-left{display:none;}
+      .auth-right{padding:32px 24px;}
+      .form-row{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+<div class="auth-wrapper">
+
+  <!-- Left branding -->
+  <div class="auth-left">
+    <div style="width:100%;max-width:400px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:36px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-boxes" style="color:#fff;font-size:18px;"></i>
+        </div>
+        <span style="font-size:16px;font-weight:800;">SmartStock AI</span>
+      </div>
+      <h2>Run your store<br>with <span class="gradient-text">AI intelligence</span></h2>
+      <p>The only inventory system that tells you what to restock before you run out of stock.</p>
+      <div class="feature-list">
+        <div class="feature-item"><i class="bi bi-graph-up-arrow"></i><span>30-day AI sales forecasting</span></div>
+        <div class="feature-item"><i class="bi bi-bell-fill"></i><span>Smart restock alerts</span></div>
+        <div class="feature-item"><i class="bi bi-bar-chart-line"></i><span>Real-time analytics dashboard</span></div>
+        <div class="feature-item"><i class="bi bi-shield-lock"></i><span>Secure business data</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right form panel -->
+  <div class="auth-right">
+    <div class="form-logo"><i class="bi bi-boxes"></i></div>
+
+    <!-- Flash Messages -->
+    <div class="flash-list">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-item flash-{{ category }}">
+            <i class="bi bi-exclamation-circle"></i> {{ message }}
+          </div>
+        {% endfor %}
+      {% endwith %}
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('login', this)">Sign In</button>
+      <button class="tab-btn" onclick="switchTab('register', this)">Register</button>
+    </div>
+
+    <!-- Login Tab -->
+    <div class="tab-panel active" id="tab-login">
+      <form method="POST" action="/login">
+        <div class="form-group">
+          <label>Username</label>
+          <div class="input-wrap">
+            <i class="bi bi-person"></i>
+            <input type="text" name="username" placeholder="Enter your username" value="demo" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i class="bi bi-lock"></i>
+            <input type="password" name="password" placeholder="Enter your password" value="demo123" required>
+          </div>
+        </div>
+        <div class=""
+</div>="checkbox" name="remember"> Remember me</label>
+        </div>
+        <button class="btn-submit" type="submit">Sign In</button>
+      </form>
+      <div class="divider"><hr><span>OR</span><hr></div>
+      <button class="demo-btn" onclick="fillDemo()">
+        <i class="bi bi-play-circle"></i> Try Demo Account
+      </button>
+    </div>
+
+    <!-- Register Tab -->
+    <div class="tab-panel" id="tab-register">
+      <form method="POST" action="/register">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Username</label>
+            <div class="input-wrap">
+              <i class="bi bi-person"></i>
+              <input type="text" name="username" placeholder="yourname" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Business Name</label>
+            <div class="input-wrap">
+              <i class="bi bi-shop"></i>
+              <input type="text" name="business_name" placeholder="Your Store">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <i class="bi bi-envelope"></i>
+            <input type="email" name="email" placeholder="you@store.com" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i class="bi bi-lock"></i>
+            <input type="password" name="password" placeholder="Minimum 6 characters" required oninput="checkStrength(this.value)">
+          </div>
+          <div class="strength-bar" id="strengthBar"></div>
+          <div class="strength-hint" id="strengthHint">Enter a password</div>
+        </div>
+        <button class="btn-submit" type="submit">Create Account</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Auto-open register tab if redirected after registration attempt
+  const flashes = document.querySelectorAll('.flash-item');
+  const path = window.location.pathname;
+  if (path === '/register') switchTab('register', document.querySelectorAll('.tab-btn')[1]);
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function fillDemo() {
+    document.querySelector('#tab-login input[name=username]').value = 'demo';
+    document.querySelector('#tab-login input[name=password]').value = 'demo123';
+    document.querySelector('#tab-login form').submit();
+  }
+
+  function checkStrength(pwd) {
+    const bar  = document.getElementById('strengthBar');
+    const hint = document.getElementById('strengthHint');
+    let score = 0;
+    if(pwd.length >= 6)  score++;
+    if(pwd.length >= 10) score++;
+    if(/[A-Z]/.test(pwd)) score++;
+    if(/[0-9]/.test(pwd)) score++;
+    if(/[^A-Za-z0-9]/.test(pwd)) score++;
+    const colors = ['#e2e8f0','#ef4444','#f59e0b','#3b82f6','#10b981','#059669'];
+    const labels = ['','Weak','Fair','Good','Strong','Very Strong'];
+    bar.style.background = colors[score] || '#e2e8f0';
+    bar.style.width = (score * 20) + '%';
+    hint.textContent = score > 0 ? labels[score] : 'Enter a password';
+    hint.style.color = colors[score];
+  }
+</script>
+</body>
+</html>

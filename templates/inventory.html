@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block topbar_title %}Inventory Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">Product Inventory</div>
+    <div class="page-header-sub">Manage stock levels, prices, and categories</div>
+  </div>
+  <button class="btn-primary-custom" onclick="openAddModal()">
+    <i class="bi bi-plus-lg"></i> Add Product
+  </button>
+</div>
+
+<!-- ── Filters ─────────────────────────────────────────────────────────────── -->
+<div class="card mb-4">
+  <div class="card-body-custom" style="padding:16px 24px;">
+    <form method="GET" action="/inventory" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:2;min-width:200px;">
+        <label class="form-label-custom">Search Product</label>
+        <div style="position:relative;">
+          <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+          <input class="form-control-custom" style="padding-left:36px;" type="text" name="search" value="{{ search }}" placeholder="Search by name...">
+        </div>
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <label class="form-label-custom">Category</label>
+        <select class="form-control-custom form-select-custom" name="category">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label class="form-label-custom">Stock Status</label>
+        <select class="form-control-custom form-select-custom" name="status">
+          <option value="">All Status</option>
+          <option value="ok"  {% if selected_status=='ok'  %}selected{% endif %}>In Stock</option>
+          <option value="low" {% if selected_status=='low' %}selected{% endif %}>Low Stock</option>
+          <option value="out" {% if selected_status=='out' %}selected{% endif %}>Out of Stock</option>
+        </select>
+      </div>
+      <button class="btn-primary-custom" type="submit"><i class="bi bi-filter"></i> Filter</button>
+      <a href="/inventory" class="btn-outline-custom" style="text-decoration:none;">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- ── Products Table ──────────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header-custom" style="padding:18px 24px 16px;">
+    <span class="card-title-custom">Products ({{ products|length }})</span>
+    <span style="font-size:12px;color:var(--text-muted);">Click row to manage</span>
+  </div>
+  <div style="overflow-x:auto;">
+    {% if products %}
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Product Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock Qty</th>
+          <th>Threshold</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px;">{{ loop.index }}</td>
+          <td>
+            <div style="font-weight:600;">{{ p.name }}</div>
+            {% if p.description %}
+              <div style="font-size:11px;color:var(--text-muted);">{{ p.description[:50] }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span style="background:#f1f5f9;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;">{{ p.category }}</span>
+          </td>
+          <td style="font-weight:700;font-family:'JetBrains Mono',monospace;">₹{{ "%.2f"|format(p.price) }}</td>
+          <td>
+            <span style="font-size:16px;font-weight:700;{% if p.quantity==0 %}color:#dc2626;{% elif p.is_low_stock %}color:#d97706;{% else %}color:#059669;{% endif %}">
+              {{ p.quantity }}
+            </span>
+          </td>
+          <td style="color:var(--text-muted);">{{ p.low_stock_threshold }}</td>
+          <td>
+            {% if p.quantity == 0 %}
+              <span class="badge-status badge-out-stock"><i class="bi bi-x-circle-fill"></i> Out of Stock</span>
+            {% elif p.is_low_stock %}
+              <span class="badge-status badge-low-stock"><i class="bi bi-exclamation-triangle-fill"></i> Low Stock</span>
+            {% else %}
+              <span class="badge-status badge-in-stock"><i class="bi bi-check-circle-fill"></i> In Stock</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button class="btn-icon" title="Quick Restock" onclick="openRestockModal({{ p.id }}, '{{ p.name }}', {{ p.quantity }})">
+                <i class="bi bi-plus-square"></i>
+              </button>
+              <a href="/inventory/edit/{{ p.id }}" class="btn-icon" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <button class="btn-icon btn-icon-danger" title="Delete" onclick="confirmDelete({{ p.id }}, '{{ p.name }}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-box-seam d-block"></i>
+      <p style="margin-top:12px;">No products found. <a href="#" onclick="openAddModal()" style="color:var(--primary);">Add your first product</a></p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Add/Edit Product Modal ─────────────────────────────────────────────── -->
+<div class="modal fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">Add New Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="productForm" method="POST">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label-custom">Product Name *</label>
+              <input class="form-control-custom" type="text" name="name" id="fname" required placeholder="e.g. Rice (5kg)">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">Category</label>
+              <input class="form-control-custom" type="text" name="category" id="fcat" list="catList" placeholder="Grocery">
+              <datalist id="catList">
+                {% for cat in categories %}
+                  <option value="{{ cat }}">
+                {% endfor %}
+                <option value="Grocery"><option value="Snacks"><option value="Beverages">
+                <option value="Personal Care"><option value="Household"><option value="Stationery">
+              </datalist>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">Price (₹) *</label>
+              <input class="form-control-custom" type="number" name="price" id="fprice" min="0.01" step="0.01" required placeholder="0.00">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">Stock Quantity</label>
+              <input class="form-control-custom" type="number" name="quantity" id="fqty" min="0" value="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">Low Stock Threshold</label>
+              <input class="form-control-custom" type="number" name="threshold" id="fthresh" min="0" value="10">
+            </div>
+            <div class="col-12">
+              <label class="form-label-custom">Description (optional)</label>
+              <input class="form-control-custom" type="text" name="description" id="fdesc" placeholder="Short description...">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn-primary-custom" type="submit" id="modalSubmitBtn">
+            <i class="bi bi-plus-lg"></i> Add Product
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Restock Modal ──────────────────────────────────────────────────────── -->
+<div class="modal fade" id="restockModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Quick Restock</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+          Product: <strong id="restockName"></strong><br>
+          Current stock: <strong id="restockCurrent"></strong>
+        </p>
+        <label class="form-label-custom">Add Quantity</label>
+        <input class="form-control-custom" type="number" id="restockQty" min="1" value="10" placeholder="Quantity to add">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn-primary-custom" onclick="submitRestock()">
+          <i class="bi bi-plus-square"></i> Restock
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Confirm ─────────────────────────────────────────────────────── -->
+<form id="deleteForm" method="POST" style="display:none;">
+  <input type="hidden" name="_method" value="DELETE">
+</form>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.btn-icon {
+  width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);
+  background:var(--bg);color:var(--text-muted);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:14px;transition:all .15s;text-decoration:none;
+}
+.btn-icon:hover { background:var(--primary);color:#fff;border-color:var(--primary); }
+.btn-icon-danger:hover { background:var(--danger);color:#fff;border-color:var(--danger); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let restockPid = null;
+
+function openAddModal() {
+  document.getElementById('modalTitle').textContent = 'Add New Product';
+  document.getElementById('productForm').action = '/inventory/add';
+  document.getElementById('modalSubmitBtn').innerHTML = '<i class="bi bi-plus-lg"></i> Add Product';
+  ['fname','fcat','fprice','fqty','fthresh','fdesc'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = id === 'fqty' ? '0' : id === 'fthresh' ? '10' : '';
+  });
+  new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+
+// Pre-fill form for edit if redirected from /inventory/edit (handled server-side)
+{% if mode == 'edit' and product %}
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('fname').value   = '{{ product.name }}';
+  document.getElementById('fcat').value    = '{{ product.category }}';
+  document.getElementById('fprice').value  = '{{ product.price }}';
+  document.getElementById('fqty').value    = '{{ product.quantity }}';
+  document.getElementById('fthresh').value = '{{ product.low_stock_threshold }}';
+  document.getElementById('fdesc').value   = '{{ product.description }}';
+  document.getElementById('productForm').action = '/inventory/edit/{{ product.id }}';
+  document.getElementById('modalTitle').textContent = 'Edit Product';
+  document.getElementById('modalSubmitBtn').innerHTML = '<i class="bi bi-check-lg"></i> Save Changes';
+  new bootstrap.Modal(document.getElementById('productModal')).show();
+});
+{% endif %}
+
+function openRestockModal(pid, name, qty) {
+  restockPid = pid;
+  document.getElementById('restockName').textContent    = name;
+  document.getElementById('restockCurrent').textContent = qty;
+  document.getElementById('restockQty').value = 10;
+  new bootstrap.Modal(document.getElementById('restockModal')).show();
+}
+
+async function submitRestock() {
+  const qty = parseInt(document.getElementById('restockQty').value);
+  if(!qty || qty < 1) return alert('Enter a valid quantity.');
+  const res = await fetch(`/api/products/${restockPid}/restock`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({quantity: qty})
+  });
+  const data = await res.json();
+  if(data.success) {
+    bootstrap.Modal.getInstance(document.getElementById('restockModal')).hide();
+    location.reload();
+  } else {
+    alert('Restock failed: ' + data.error);
+  }
+}
+
+function confirmDelete(pid, name) {
+  if(confirm(`Delete "${name}" and all its sales history? This cannot be undone.`)) {
+    const f = document.getElementById('deleteForm');
+    f.action = `/inventory/delete/${pid}`;
+    f.style.display = 'block';
+    f.submit();
+  }
+}
+</script>
+{% endblock %}

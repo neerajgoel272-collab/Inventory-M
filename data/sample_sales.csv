@@ -1,0 +1,51 @@
+date,product_name,category,quantity_sold,unit_price,total_amount
+2024-01-01,Rice (5kg),Grocery,8,250.0,2000.0
+2024-01-01,Wheat Flour (1kg),Grocery,12,45.0,540.0
+2024-01-01,Sugar (1kg),Grocery,6,42.0,252.0
+2024-01-01,Biscuits (Pack),Snacks,20,25.0,500.0
+2024-01-01,Tea (250g),Beverages,5,85.0,425.0
+2024-01-02,Rice (5kg),Grocery,6,250.0,1500.0
+2024-01-02,Cooking Oil (1L),Grocery,4,130.0,520.0
+2024-01-02,Soap (100g),Personal Care,9,35.0,315.0
+2024-01-02,Chips (Pack),Snacks,15,20.0,300.0
+2024-01-02,Cold Drink (500ml),Beverages,10,30.0,300.0
+2024-01-03,Wheat Flour (1kg),Grocery,10,45.0,450.0
+2024-01-03,Dal (500g),Grocery,7,65.0,455.0
+2024-01-03,Shampoo (200ml),Personal Care,3,120.0,360.0
+2024-01-03,Detergent (500g),Household,4,95.0,380.0
+2024-01-03,Notebook (200pg),Stationery,5,55.0,275.0
+2024-01-04,Rice (5kg),Grocery,10,250.0,2500.0
+2024-01-04,Sugar (1kg),Grocery,8,42.0,336.0
+2024-01-04,Biscuits (Pack),Snacks,25,25.0,625.0
+2024-01-04,Tea (250g),Beverages,7,85.0,595.0
+2024-01-04,Toothpaste (100g),Personal Care,5,55.0,275.0
+2024-01-05,Wheat Flour (1kg),Grocery,15,45.0,675.0
+2024-01-05,Cooking Oil (1L),Grocery,6,130.0,780.0
+2024-01-05,Cold Drink (500ml),Beverages,18,30.0,540.0
+2024-01-05,Chips (Pack),Snacks,22,20.0,440.0
+2024-01-05,Soap (100g),Personal Care,10,35.0,350.0
+2024-01-06,Rice (5kg),Grocery,5,250.0,1250.0
+2024-01-06,Dal (500g),Grocery,9,65.0,585.0
+2024-01-06,Detergent (500g),Household,6,95.0,570.0
+2024-01-06,Coffee (100g),Beverages,3,150.0,450.0
+2024-01-06,Notebook (200pg),Stationery,8,55.0,440.0
+2024-01-07,Rice (5kg),Grocery,12,250.0,3000.0
+2024-01-07,Wheat Flour (1kg),Grocery,14,45.0,630.0
+2024-01-07,Sugar (1kg),Grocery,10,42.0,420.0
+2024-01-07,Biscuits (Pack),Snacks,30,25.0,750.0
+2024-01-07,Tea (250g),Beverages,9,85.0,765.0
+2024-01-08,Cooking Oil (1L),Grocery,5,130.0,650.0
+2024-01-08,Shampoo (200ml),Personal Care,4,120.0,480.0
+2024-01-08,Cold Drink (500ml),Beverages,14,30.0,420.0
+2024-01-08,Chips (Pack),Snacks,18,20.0,360.0
+2024-01-08,Toothpaste (100g),Personal Care,6,55.0,330.0
+2024-01-09,Rice (5kg),Grocery,9,250.0,2250.0
+2024-01-09,Dal (500g),Grocery,8,65.0,520.0
+2024-01-09,Soap (100g),Personal Care,12,35.0,420.0
+2024-01-09,Coffee (100g),Beverages,4,150.0,600.0
+2024-01-09,Detergent (500g),Household,5,95.0,475.0
+2024-01-10,Wheat Flour (1kg),Grocery,11,45.0,495.0
+2024-01-10,Sugar (1kg),Grocery,9,42.0,378.0
+2024-01-10,Biscuits (Pack),Snacks,28,25.0,700.0
+2024-01-10,Tea (250g),Beverages,8,85.0,680.0
+2024-01-10,Notebook (200pg),Stationery,6,55.0,330.0

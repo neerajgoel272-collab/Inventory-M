@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+{% block title %}AI Forecasting{% endblock %}
+{% block topbar_title %}AI Sales Forecasting{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">AI Sales Forecasting</div>
+    <div class="page-header-sub">Machine learning predictions for demand planning and restock suggestions</div>
+  </div>
+  <button class="btn-primary-custom" onclick="loadAllForecasts()">
+    <i class="bi bi-robot"></i> Run All Forecasts
+  </button>
+</div>
+
+<!-- ── AI Info Banner ──────────────────────────────────────────────────────── -->
+<div style="background:linear-gradient(135deg,rgba(37,99,235,.08),rgba(124,58,237,.08));border:1px solid rgba(37,99,235,.2);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;">
+  <div style="font-size:28px;">🤖</div>
+  <div>
+    <div style="font-size:13.5px;font-weight:700;color:var(--primary);margin-bottom:3px;">How the AI Forecasting Works</div>
+    <div style="font-size:12.5px;color:var(--text-muted);line-height:1.6;">
+      Our ML model uses <strong>Linear Regression with feature engineering</strong> — it learns from day-of-week patterns, seasonal trends, lag values, and rolling averages to predict future demand.
+      With 7+ days of data it generates up to 30-day forecasts with confidence intervals and restock recommendations.
+    </div>
+  </div>
+</div>
+
+<!-- ── Product Selector + Forecast Panel ─────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <!-- Left: product picker -->
+  <div class="col-xl-4">
+    <div class="card" style="height:100%;">
+      <div class="card-header-custom">
+        <span class="card-title-custom">Select Product to Forecast</span>
+      </div>
+      <div class="card-body-custom">
+        <label class="form-label-custom">Product</label>
+        <select class="form-control-custom form-select-custom" id="forecastProduct">
+          <option value="">-- Choose a product --</option>
+          {% for p in products %}
+          <option value="{{ p.id }}">{{ p.name }} ({{ p.category }})</option>
+          {% endfor %}
+        </select>
+
+        <label class="form-label-custom" style="margin-top:14px;">Forecast Horizon</label>
+        <select class="form-control-custom form-select-custom" id="forecastDays">
+          <option value="7">7 Days</option>
+          <option value="14">14 Days</option>
+          <option value="30" selected>30 Days</option>
+        </select>
+
+        <button class="btn-primary-custom" style="width:100%;justify-content:center;margin-top:16px;" onclick="runForecast()">
+          <i class="bi bi-graph-up-arrow"></i> Generate Forecast
+        </button>
+
+        <hr class="divider">
+
+        <!-- Restock recommendation panel -->
+        <div id="restockPanel" style="display:none;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;">📦 Restock Recommendation</div>
+          <div id="restockCards" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+
+        <!-- Model info -->
+        <div id="modelInfo" style="display:none;margin-top:16px;padding:12px;background:var(--bg);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Model Info</div>
+          <div id="modelName"  style="font-size:12.5px;font-weight:600;"></div>
+          <div id="modelMAE"   style="font-size:12px;color:var(--text-muted);margin-top:4px;"></div>
+          <div id="modelPoints" style="font-size:12px;color:var(--text-muted);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: forecast chart -->
+  <div class="col-xl-8">
+    <div class="card" style="height:100%;">
+      <div class="card-header-custom">
+        <span class="card-title-custom" id="chartTitle">Forecast Chart</span>
+        <span style="font-size:12px;color:var(--text-muted);" id="chartSubtitle">Select a product to begin</span>
+      </div>
+      <div class="card-body-custom" style="position:relative;min-height:320px;display:flex;align-items:center;justify-content:center;">
+        <div id="chartPlaceholder" style="text-align:center;color:var(--text-muted);">
+          <div style="font-size:48px;margin-bottom:12px;opacity:.2;">📈</div>
+          <div style="font-weight:600;">Choose a product and click Generate Forecast</div>
+          <div style="font-size:12px;margin-top:4px;">AI will predict sales for the selected horizon</div>
+        </div>
+        <div id="chartLoader" style="display:none;text-align:center;">
+          <div class="spinner" style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;"></div>
+          <div style="font-size:13px;color:var(--text-muted);">Running AI model...</div>
+        </div>
+        <canvas id="forecastChart" style="display:none;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── All Products Forecast Table ─────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header-custom">
+    <span class="card-title-custom">📊 All Products — 14-Day Forecast Overview</span>
+    <button class="btn-outline-custom" style="font-size:12px;padding:6px 14px;" onclick="loadAllForecasts()">
+      <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+  </div>
+  <div class="card-body-custom" style="padding-top:8px;" id="allForecastContainer">
+    <div style="text-align:center;padding:32px;color:var(--text-muted);">
+      <div style="font-size:13px;">Click <strong>"Run All Forecasts"</strong> to generate predictions for every product</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes spin { to { transform:rotate(360deg); } }
+.urgency-high   { background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700; }
+.urgency-medium { background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700; }
+.urgency-low    { background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700; }
+.restock-kpi { background:var(--bg);border-radius:9px;padding:10px 14px; }
+.restock-kpi .label { font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px; }
+.restock-kpi .value { font-size:18px;font-weight:800;margin-top:2px; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let forecastChartInstance = null;
+
+async function runForecast() {
+  const pid  = document.getElementById('forecastProduct').value;
+  const days = document.getElementById('forecastDays').value;
+  if (!pid) return alert('Please select a product.');
+
+  // Show loader
+  document.getElementById('chartPlaceholder').style.display = 'none';
+  document.getElementById('chartLoader').style.display      = 'block';
+  document.getElementById('forecastChart').style.display    = 'none';
+  document.getElementById('restockPanel').style.display     = 'none';
+  document.getElementById('modelInfo').style.display        = 'none';
+
+  try {
+    const res  = await fetch(`/api/forecast/${pid}?days=${days}`);
+    const data = await res.json();
+
+    if (data.error) {
+      document.getElementById('chartLoader').style.display = 'none';
+      document.getElementById('chartPlaceholder').style.display = 'block';
+      document.getElementById('chartPlaceholder').innerHTML =
+        `<div style="font-size:32px;opacity:.3;">⚠️</div><div style="font-weight:600;margin-top:8px;color:var(--danger);">${data.error}</div>`;
+      return;
+    }
+
+    renderForecastChart(data);
+    renderRestockPanel(data.restock_recommendation);
+    renderModelInfo(data);
+
+  } catch(e) {
+    alert('Forecast failed: ' + e.message);
+    document.getElementById('chartLoader').style.display   = 'none';
+    document.getElementById('chartPlaceholder').style.display = 'block';
+  }
+}
+
+function renderForecastChart(data) {
+  const hist     = data.historical;
+  const forecast = data.forecast;
+  const product  = data.product;
+
+  // Combine datasets
+  const histLabels = hist.map(d => d.date);
+  const histValues = hist.map(d => d.qty);
+  const fcLabels   = forecast.map(d => d.date);
+  const fcValues   = forecast.map(d => d.predicted_qty);
+  const fcUpper    = forecast.map(d => d.upper);
+  const fcLower    = forecast.map(d => d.lower);
+
+  const allLabels = [...histLabels.slice(-30), ...fcLabels];
+
+  document.getElementById('chartLoader').style.display = 'none';
+  const canvas = document.getElementById('forecastChart');
+  canvas.style.display = 'block';
+  document.getElementById('chartTitle').textContent    = `Forecast: ${product.name}`;
+  document.getElementById('chartSubtitle').textContent = `${data.accuracy_metrics.forecast_horizon}-day prediction • Model: ${data.model_used}`;
+
+  if (forecastChartInstance) forecastChartInstance.destroy();
+
+  forecastChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: allLabels,
+      datasets: [
+        {
+          label: 'Actual Sales',
+          data: [...histValues.slice(-30), ...Array(fcLabels.length).fill(null)],
+          borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.08)',
+          borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3,
+        },
+        {
+          label: 'AI Forecast',
+          data: [...Array(Math.min(histValues.length, 30)).fill(null), ...fcValues],
+          borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,.08)',
+          borderWidth: 2.5, borderDash: [5,4], pointRadius: 3,
+          pointBackgroundColor: '#7c3aed', fill: false, tension: 0.3,
+        },
+        {
+          label: 'Upper Bound',
+          data: [...Array(Math.min(histValues.length, 30)).fill(null), ...fcUpper],
+          borderColor: 'rgba(124,58,237,.2)', borderWidth: 1,
+          pointRadius: 0, fill: false, tension: 0.3,
+        },
+        {
+          label: 'Lower Bound',
+          data: [...Array(Math.min(histValues.length, 30)).fill(null), ...fcLower],
+          borderColor: 'rgba(124,58,237,.2)', borderWidth: 1,
+          backgroundColor: 'rgba(124,58,237,.05)',
+          pointRadius: 0, fill: '-1', tension: 0.3,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 }, usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y !== null ? ctx.parsed.y.toFixed(1) + ' units' : '—'}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxTicksLimit: 12,
+            callback: (val, i) => allLabels[i] ? allLabels[i].substring(5) : ''
+          },
+          grid: { color: 'rgba(0,0,0,.04)' }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,.04)' },
+          title: { display: true, text: 'Units Sold', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+function renderRestockPanel(rec) {
+  const panel = document.getElementById('restockPanel');
+  const cards = document.getElementById('restockCards');
+  panel.style.display = 'block';
+
+  const daysColor = rec.days_of_stock_remaining < 5 ? '#dc2626' :
+                    rec.days_of_stock_remaining < 14 ? '#d97706' : '#059669';
+
+  cards.innerHTML = `
+    <div class="restock-kpi">
+      <div class="label">Current Stock</div>
+      <div class="value">${rec.current_stock} units</div>
+    </div>
+    <div class="restock-kpi">
+      <div class="label">Predicted Demand</div>
+      <div class="value" style="color:var(--primary);">${rec.predicted_demand} units</div>
+    </div>
+    <div class="restock-kpi">
+      <div class="label">Days of Stock Remaining</div>
+      <div class="value" style="color:${daysColor};">${rec.days_of_stock_remaining} days</div>
+    </div>
+    ${rec.suggested_restock > 0 ? `
+    <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #fde68a;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">⚠️ Suggested Restock</div>
+      <div style="font-size:22px;font-weight:900;color:#d97706;">${rec.suggested_restock} units</div>
+      <div style="font-size:11px;color:#92400e;margin-top:2px;">Order soon to avoid stockout</div>
+    </div>` : `
+    <div style="background:#d1fae5;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:13px;font-weight:700;color:#065f46;">✅ Stock levels sufficient for forecast period</div>
+    </div>`}
+  `;
+}
+
+function renderModelInfo(data) {
+  const mi = document.getElementById('modelInfo');
+  mi.style.display = 'block';
+  document.getElementById('modelName').textContent   = '🤖 ' + data.model_used;
+  document.getElementById('modelMAE').textContent    = `MAE: ${data.accuracy_metrics.mae} units`;
+  document.getElementById('modelPoints').textContent = `Training data: ${data.accuracy_metrics.data_points} days`;
+}
+
+async function loadAllForecasts() {
+  const container = document.getElementById('allForecastContainer');
+  container.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-muted);">
+    <div class="spinner" style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;"></div>
+    Running AI forecast for all products...
+  </div>`;
+
+  try {
+    const res  = await fetch('/api/forecast/all');
+    const data = await res.json();
+    renderAllTable(data);
+  } catch(e) {
+    container.innerHTML = `<div style="color:var(--danger);padding:20px;">Error: ${e.message}</div>`;
+  }
+}
+
+function renderAllTable(rows) {
+  const container = document.getElementById('allForecastContainer');
+  if (!rows.length) {
+    container.innerHTML = '<div class="empty-state"><i class="bi bi-box-seam d-block"></i>No products found.</div>';
+    return;
+  }
+
+  const html = `
+  <div style="overflow-x:auto;">
+  <table class="table-custom">
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Category</th>
+        <th>Current Stock</th>
+        <th>14-Day Demand</th>
+        <th>Avg/Day</th>
+        <th>Days Remaining</th>
+        <th>Restock Qty</th>
+        <th>Urgency</th>
+        <th>Model</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r => r.status === 'insufficient_data' ? `
+        <tr>
+          <td style="font-weight:600;">${r.product_name}</td>
+          <td colspan="7" style="color:var(--text-muted);font-size:12px;"><i class="bi bi-info-circle"></i> Insufficient data (need 7+ days of sales)</td>
+          <td>—</td>
+        </tr>
+      ` : `
+        <tr>
+          <td style="font-weight:600;">${r.product_name}</td>
+          <td><span style="background:#f1f5f9;padding:2px 9px;border-radius:20px;font-size:11px;">${r.category}</span></td>
+          <td style="font-weight:700;${r.current_stock === 0 ? 'color:#dc2626;' : r.current_stock <= 10 ? 'color:#d97706;' : 'color:#059669;'}">${r.current_stock}</td>
+          <td style="font-weight:700;color:var(--primary);">${r.predicted_14d}</td>
+          <td>${r.avg_daily_demand}</td>
+          <td style="font-weight:700;${r.days_remaining < 5 ? 'color:#dc2626;' : r.days_remaining < 14 ? 'color:#d97706;' : 'color:#059669;'}">${r.days_remaining >= 999 ? '∞' : r.days_remaining + 'd'}</td>
+          <td style="font-weight:700;">${r.restock_qty > 0 ? r.restock_qty : '—'}</td>
+          <td><span class="urgency-${r.urgency}">${r.urgency.toUpperCase()}</span></td>
+          <td style="font-size:11px;color:var(--text-muted);">${r.model}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  </div>`;
+  container.innerHTML = html;
+}
+</script>
+{% endblock %}

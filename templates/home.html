@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartStock AI — Smart Inventory & Forecasting</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb; --secondary: #7c3aed;
+      --bg: #060b18; --text: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,.25) 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 40% at 80% 50%, rgba(124,58,237,.2) 0%, transparent 60%),
+                  #060b18;
+      display: flex; flex-direction: column;
+    }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 60px; border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-logo {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .nav-name { font-size: 18px; font-weight: 800; }
+    .nav-links { display: flex; align-items: center; gap: 12px; }
+    .btn-nav-ghost {
+      padding: 9px 20px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,.2);
+      color: rgba(255,255,255,.8); text-decoration: none; font-size: 14px; font-weight: 600;
+      transition: all .2s;
+    }
+    .btn-nav-ghost:hover { border-color: #fff; color: #fff; }
+    .btn-nav-solid {
+      padding: 9px 22px; border-radius: 8px; border: none;
+      background: var(--primary); color: #fff; text-decoration: none;
+      font-size: 14px; font-weight: 700; transition: all .2s;
+    }
+    .btn-nav-solid:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+    .hero-body {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; text-align: center; padding: 60px 20px;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 20px; margin-bottom: 24px;
+      background: rgba(37,99,235,.15); border: 1px solid rgba(37,99,235,.3);
+      font-size: 12px; font-weight: 600; color: #93c5fd; letter-spacing: .5px;
+    }
+    h1 {
+      font-size: clamp(36px, 6vw, 72px); font-weight: 900; line-height: 1.08;
+      letter-spacing: -2px; max-width: 800px; margin-bottom: 24px;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 18px; color: rgba(255,255,255,.55); max-width: 520px;
+      line-height: 1.7; margin-bottom: 40px;
+    }
+    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .btn-cta-primary {
+      padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff; text-decoration: none; transition: all .25s;
+      box-shadow: 0 4px 24px rgba(37,99,235,.4);
+    }
+    .btn-cta-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(37,99,235,.5); }
+    .btn-cta-ghost {
+      padding: 13px 28px; border-radius: 10px; font-size: 15px; font-weight: 600;
+      border: 1.5px solid rgba(255,255,255,.2); color: rgba(255,255,255,.8);
+      text-decoration: none; transition: all .2s;
+    }
+    .btn-cta-ghost:hover { border-color: #fff; color: #fff; }
+
+    /* ── Stats ── */
+    .stats-strip {
+      display: flex; justify-content: center; gap: 48px; flex-wrap: wrap;
+      padding: 40px 60px; border-top: 1px solid rgba(255,255,255,.07);
+    }
+    .stat-item { text-align: center; }
+    .stat-num { font-size: 32px; font-weight: 900; letter-spacing: -1px; }
+    .stat-lbl { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 4px; font-weight: 500; }
+
+    /* ── Features ── */
+    .features-section {
+      background: #080d1c; padding: 80px 60px;
+      border-top: 1px solid rgba(255,255,255,.07);
+    }
+    .section-label {
+      font-size: 12px; letter-spacing: 2px; color: #60a5fa; font-weight: 600;
+      text-transform: uppercase; text-align: center; margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px;
+      text-align: center; margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .feature-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px; padding: 28px;
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: rgba(37,99,235,.5); transform: translateY(-3px); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(37,99,235,.2), rgba(124,58,237,.2));
+      border: 1px solid rgba(37,99,235,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 16px; color: #93c5fd;
+    }
+    .feature-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc  { font-size: 13.5px; color: rgba(255,255,255,.45); line-height: 1.6; }
+
+    /* ── Demo Banner ── */
+    .demo-banner {
+      background: linear-gradient(135deg, rgba(37,99,235,.15), rgba(124,58,237,.15));
+      border: 1px solid rgba(37,99,235,.3); border-radius: 16px;
+      padding: 32px 40px; text-align: center; max-width: 700px; margin: 0 auto 80px;
+    }
+    .demo-banner h3 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .demo-banner p  { color: rgba(255,255,255,.55); margin-bottom: 20px; font-size: 14px; }
+    .demo-creds {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .cred-badge {
+      padding: 8px 16px; border-radius: 8px; background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12); font-size: 13px;
+    }
+    .cred-badge span { color: #60a5fa; font-weight: 700; }
+
+    footer {
+      text-align: center; padding: 24px;
+      color: rgba(255,255,255,.25); font-size: 12px;
+      border-top: 1px solid rgba(255,255,255,.07);
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-logo"><i class="bi bi-boxes" style="color:#fff;"></i></div>
+      <span class="nav-name">SmartStock AI</span>
+    </div>
+    <div class="nav-links">
+      <a href="/login"    class="btn-nav-ghost">Login</a>
+      <a href="/register" class="btn-nav-solid">Get Started</a>
+    </div>
+  </nav>
+
+  <div class="hero-body">
+    <div class="hero-badge">
+      <i class="bi bi-lightning-charge-fill"></i>
+      AI-Powered Inventory Intelligence
+    </div>
+    <h1>Smart Inventory &amp;<br><span class="gradient-text">Sales Forecasting</span><br>for Small Business</h1>
+    <p class="hero-sub">Predict demand before you run out of stock. ML-powered forecasting tells you exactly when to reorder — saving money and sales.</p>
+    <div class="hero-cta">
+      <a href="/register" class="btn-cta-primary"><i class="bi bi-rocket-takeoff"></i> &nbsp;Start Free</a>
+      <a href="/login"    class="btn-cta-ghost">Demo Login →</a>
+    </div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-item"><div class="stat-num gradient-text">AI</div><div class="stat-lbl">Powered Forecast</div></div>
+    <div class="stat-item"><div class="stat-num gradient-text">Real</div><div class="stat-lbl">Time Alerts</div></div>
+    <div class="stat-item"><div class="stat-num gradient-text">30-Day</div><div class="stat-lbl">Demand Prediction</div></div>
+    <div class="stat-item"><div class="stat-num gradient-text">Auto</div><div class="stat-lbl">Restock Suggestions</div></div>
+  </div>
+</div>
+
+<section class="features-section">
+  <div class="section-label">Features</div>
+  <div class="section-title">Everything a small store needs</div>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon"><i class="bi bi-box-seam"></i></div>
+      <div class="feature-title">Smart Inventory</div>
+      <div class="feature-desc">Add, update, and track products with real-time stock levels and automated low-stock warnings.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="feature-title">AI Sales Forecasting</div>
+      <div class="feature-desc">Machine learning predicts future demand using historical patterns, seasonality, and trends.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="bi bi-receipt-cutoff"></i></div>
+      <div class="feature-title">Sales Tracking</div>
+      <div class="feature-desc">Record every transaction, view history, generate reports, and automatically deduct from stock.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="bi bi-bell-fill"></i></div>
+      <div class="feature-title">Restock Alerts</div>
+      <div class="feature-desc">Get notified before items run out. AI calculates how many days of stock remain and how much to reorder.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="bi bi-bar-chart-line"></i></div>
+      <div class="feature-title">Analytics Dashboard</div>
+      <div class="feature-desc">Visual charts and KPIs for revenue, top products, category performance, and monthly trends.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="bi bi-shield-check"></i></div>
+      <div class="feature-title">Secure Multi-User</div>
+      <div class="feature-desc">Each business owner has their own isolated data. Secure login with hashed passwords.</div>
+    </div>
+  </div>
+</section>
+
+<section style="padding: 0 60px;">
+  <div class="demo-banner">
+    <h3>Try the Live Demo</h3>
+    <p>Use the pre-seeded demo account with 90 days of sample data and 15 products.</p>
+    <div class="demo-creds">
+      <div class="cred-badge">Username: <span>demo</span></div>
+      <div class="cred-badge">Password: <span>demo123</span></div>
+    </div>
+    <a href="/login" class="btn-cta-primary" style="display:inline-flex;align-items:center;gap:8px;">
+      <i class="bi bi-box-arrow-in-right"></i> Open Demo
+    </a>
+  </div>
+</section>
+
+<footer>
+  © 2024 SmartStock AI — Final Year Project &nbsp;|&nbsp; Built with Flask, Python ML, SQLite, Bootstrap
+</footer>
+
+</body>
+</html>

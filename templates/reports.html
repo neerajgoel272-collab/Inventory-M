@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block topbar_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">Reports &amp; Analytics</div>
+    <div class="page-header-sub">Deep-dive into your business performance</div>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <select class="form-control-custom form-select-custom" id="reportRange" style="width:160px;" onchange="refreshAll()">
+      <option value="30">Last 30 Days</option>
+      <option value="60">Last 60 Days</option>
+      <option value="90" selected>Last 90 Days</option>
+    </select>
+  </div>
+</div>
+
+<!-- ── Summary KPIs ─────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4" id="summaryRow">
+  <div class="col-md-3"><div class="kpi-card" id="kpi-total-rev">
+    <div class="kpi-icon" style="background:#eff6ff;color:#2563eb;"><i class="bi bi-currency-rupee"></i></div>
+    <div class="kpi-value" id="kv-total">—</div><div class="kpi-label">Total Revenue</div>
+  </div></div>
+  <div class="col-md-3"><div class="kpi-card">
+    <div class="kpi-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="bi bi-calendar-month"></i></div>
+    <div class="kpi-value" id="kv-month">—</div><div class="kpi-label">This Month</div>
+    <div class="kpi-change" id="kv-growth" style="color:var(--success);"></div>
+  </div></div>
+  <div class="col-md-3"><div class="kpi-card">
+    <div class="kpi-icon" style="background:#f0fdf4;color:#059669;"><i class="bi bi-receipt"></i></div>
+    <div class="kpi-value" id="kv-tx">—</div><div class="kpi-label">Transactions</div>
+  </div></div>
+  <div class="col-md-3"><div class="kpi-card">
+    <div class="kpi-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-calculator"></i></div>
+    <div class="kpi-value" id="kv-avg">—</div><div class="kpi-label">Avg Sale Value</div>
+  </div></div>
+</div>
+
+<!-- ── Charts Row 1 ─────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">Monthly Revenue Trend</span>
+        <span style="font-size:12px;color:var(--text-muted);">Last 12 months</span>
+      </div>
+      <div class="card-body-custom"><canvas id="monthlyChart" height="110"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">Sales by Category</span>
+      </div>
+      <div class="card-body-custom" style="display:flex;justify-content:center;">
+        <canvas id="categoryChart" height="210" style="max-height:210px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row 2 ─────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">Daily Revenue — Last 30 Days</span>
+      </div>
+      <div class="card-body-custom"><canvas id="dailyChart" height="150"></canvas></div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-header-custom">
+        <span class="card-title-custom">Top 10 Products by Revenue</span>
+      </div>
+      <div class="card-body-custom"><canvas id="topProductsChart" height="150"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Top Products Table ──────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header-custom">
+    <span class="card-title-custom">Product Performance Summary</span>
+  </div>
+  <div style="overflow-x:auto;" id="topProductsTable">
+    <div style="padding:24px;text-align:center;color:var(--text-muted);">Loading...</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const COLORS = ['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#be185d','#ca8a04','#16a34a','#9333ea','#ea580c','#0284c7','#65a30d','#db2777','#15803d','#f59e0b'];
+const CAT_COLORS = {
+  'Grocery':      '#2563eb',
+  'Beverages':    '#7c3aed',
+  'Personal Care':'#059669',
+  'Household':    '#d97706',
+  'Stationery':   '#dc2626',
+  'Snacks':       '#0891b2',
+  'Spices':       '#be185d',
+  'Confectionery':'#ca8a04',
+};
+function catColor(cat) { return CAT_COLORS[cat] || '#6b7280'; }
+let charts = {};
+
+async function refreshAll() {
+  await Promise.all([loadSummary(), loadMonthly(), loadCategory(), loadDaily(), loadTopProducts()]);
+}
+
+async function loadSummary() {
+  const data = await (await fetch('/api/reports/summary')).json();
+  document.getElementById('kv-total').textContent = '₹' + data.total_revenue.toLocaleString('en-IN');
+  document.getElementById('kv-month').textContent = '₹' + data.monthly_revenue.toLocaleString('en-IN');
+  document.getElementById('kv-tx').textContent    = data.total_transactions.toLocaleString();
+  document.getElementById('kv-avg').textContent   = '₹' + data.avg_transaction_value.toLocaleString('en-IN');
+  const g = document.getElementById('kv-growth');
+  const pct = data.month_growth_pct;
+  g.textContent = (pct >= 0 ? '▲ +' : '▼ ') + pct + '% vs last month';
+  g.style.color = pct >= 0 ? 'var(--success)' : 'var(--danger)';
+}
+
+async function loadMonthly() {
+  const rows = await (await fetch('/api/reports/monthly-trend')).json();
+  const ctx  = document.getElementById('monthlyChart');
+  if (charts.monthly) charts.monthly.destroy();
+  charts.monthly = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rows.map(r => r.month),
+      datasets: [
+        {
+          label: 'Revenue (₹)',
+          data: rows.map(r => r.revenue),
+          backgroundColor: '#2563eb',
+          borderColor: COLORS[0],
+          borderWidth: 2, borderRadius: 5,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Transactions',
+          data: rows.map(r => r.transactions),
+          type: 'line',
+          borderColor: COLORS[1],
+          backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 3,
+          yAxisID: 'y1',
+          tension: 0.4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index' },
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 }, usePointStyle: true } } },
+      scales: {
+        y:  { beginAtZero: true, position: 'left',  grid: { color: 'rgba(0,0,0,.04)' }, ticks: { callback: v => '₹' + v.toLocaleString() } },
+        y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { color: COLORS[1] } },
+        x:  { grid: { display: false } }
+      }
+    }
+  });
+}
+
+async function loadCategory() {
+  const rows = await (await fetch('/api/reports/category-sales')).json();
+  const ctx  = document.getElementById('categoryChart');
+  if (charts.cat) charts.cat.destroy();
+  charts.cat = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: rows.map(r => r.category),
+      datasets: [{ data: rows.map(r => r.revenue), backgroundColor: COLORS, borderWidth: 0, hoverOffset: 5 }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ₹${ctx.parsed.toLocaleString()}` } }
+      }
+    }
+  });
+}
+
+async function loadDaily() {
+  const rows = await (await fetch('/api/reports/daily-trend?days=30')).json();
+  const ctx  = document.getElementById('dailyChart');
+  if (charts.daily) charts.daily.destroy();
+  charts.daily = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rows.map(r => r.date.substring(5)),
+      datasets: [{
+        label: 'Daily Revenue (₹)',
+        data: rows.map(r => r.revenue),
+        borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.15)',
+        borderWidth: 2, fill: true, tension: 0.4, pointRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { callback: v => '₹' + v } },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }
+      }
+    }
+  });
+}
+
+async function loadTopProducts() {
+  const rows = await (await fetch('/api/reports/top-products?limit=10')).json();
+
+  // Chart
+  const ctx = document.getElementById('topProductsChart');
+  if (charts.top) charts.top.destroy();
+  charts.top = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rows.map(r => r.product.length > 15 ? r.product.substring(0,15)+'…' : r.product),
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: rows.map(r => r.revenue),
+        backgroundColor: rows.map(r => catColor(r.category) + 'CC'),
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString() }, grid: { color: 'rgba(0,0,0,.04)' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Table
+  const maxRev = rows[0]?.revenue || 1;
+  const tableHtml = `
+  <table class="table-custom">
+    <thead><tr><th>Rank</th><th>Product</th><th>Category</th><th>Units Sold</th><th>Revenue</th><th>Share</th></tr></thead>
+    <tbody>
+      ${rows.map((r, i) => `
+        <tr>
+          <td style="font-weight:800;color:${i<3?COLORS[i]:'var(--text-muted)'};">#${i+1}</td>
+          <td style="font-weight:600;">${r.product}</td>
+          <td><span style="background:#f1f5f9;padding:2px 9px;border-radius:20px;font-size:11px;">${r.category}</span></td>
+          <td>${r.qty}</td>
+          <td style="font-weight:700;color:var(--success);">₹${r.revenue.toLocaleString('en-IN')}</td>
+          <td style="width:160px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;background:#f1f5f9;border-radius:4px;height:7px;overflow:hidden;">
+                <div style="height:100%;background:${COLORS[i%COLORS.length]};border-radius:4px;width:${(r.revenue/maxRev*100).toFixed(0)}%;"></div>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted);width:40px;">${(r.revenue/maxRev*100).toFixed(0)}%</span>
+            </div>
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+  document.getElementById('topProductsTable').innerHTML = tableHtml;
+}
+
+// Load on page open
+refreshAll();
+</script>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}QueryBox{% endblock %}
+{% block topbar_title %}AI QueryBox{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">QueryBox</div>
+    <div class="page-header-sub">Ask questions about your inventory and sales (read-only)</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body-custom">
+    <div style="display:flex;gap:10px;">
+      <input id="q" class="form-control-custom" placeholder="Try: kpis, sales last 7 days, top categories, reorder today, forecast rice" />
+      <button class="btn-primary-custom" onclick="ask()">Ask</button>
+    </div>
+    <pre id="out" style="margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;min-height:140px;white-space:pre-wrap;">💡 What can I help you with?
+
+  📊  kpis                      → Total revenue, monthly revenue, low-stock count
+  📅  sales last 7 days         → Daily sales breakdown for last N days
+  🏆  top products              → Top 5 products by revenue
+  🗂️  top categories            → Top 5 categories by revenue
+  🔁  reorder                   → Items that need restocking now
+  🔮  forecast rice             → 14-day demand forecast for any product
+
+Just type your query above and hit Ask!</pre>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function ask() {
+  const q = document.getElementById('q').value;
+  const out = document.getElementById('out');
+  out.textContent = 'Thinking...';
+  try {
+    const res = await fetch('/api/copilot/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q })
+    });
+    const data = await res.json();
+    out.textContent = data.answer || JSON.stringify(data, null, 2);
+  } catch (e) {
+    out.textContent = 'Error: ' + e;
+  }
+}
+</script>
+{% endblock %}
+

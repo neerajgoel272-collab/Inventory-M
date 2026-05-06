@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% block title %}Purchases{% endblock %}
+{% block topbar_title %}Purchase Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="page-header-title">Purchase Records</div>
+    <div class="page-header-sub">Track stock purchases from suppliers</div>
+  </div>
+  <button class="btn-primary-custom" onclick="openPurchaseModal()">
+    <i class="bi bi-plus-lg"></i> Record Purchase
+  </button>
+</div>
+
+<!-- Summary Strip -->
+<div class="card mb-4">
+  <div class="card-body-custom" style="padding:18px 24px;">
+    <div style="display:flex;align-items:center;gap:32px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Period Spend</div>
+        <div style="font-size:24px;font-weight:800;color:var(--danger);">₹{{ "{:,.2f}".format(period_total) }}</div>
+      </div>
+      <div style="width:1px;height:40px;background:var(--border);"></div>
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">GST Paid</div>
+        <div style="font-size:24px;font-weight:800;color:var(--warning);">₹{{ "{:,.2f}".format(period_gst_total) }}</div>
+      </div>
+      <div style="width:1px;height:40px;background:var(--border);"></div>
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Bills</div>
+        <div style="font-size:24px;font-weight:800;">{{ bills|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+  <div class="card-body-custom" style="padding:16px 24px;">
+    <form method="GET" action="/purchases" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:1;min-width:140px;">
+        <label class="form-label-custom">From Date</label>
+        <input class="form-control-custom" type="date" name="start" value="{{ start_date }}">
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label class="form-label-custom">To Date</label>
+        <input class="form-control-custom" type="date" name="end" value="{{ end_date }}">
+      </div>
+      <button class="btn-primary-custom" type="submit"><i class="bi bi-filter"></i> Filter</button>
+      <a href="/purchases" class="btn-outline-custom" style="text-decoration:none;">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Purchase Bills Table -->
+<div class="card">
+  <div class="card-header-custom" style="padding:18px 24px 14px;">
+    <span class="card-title-custom">Purchase Bills ({{ bills|length }})</span>
+  </div>
+  <div style="overflow-x:auto;">
+    {% if bills %}
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Bill</th>
+          <th>Date</th>
+          <th>Supplier / Party</th>
+          <th>Items</th>
+          <th>GST</th>
+          <th>Bill Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bill in bills %}
+        <tr style="background:var(--surface2);cursor:pointer;" onclick="toggleBill('pbill-{{ loop.index }}')">
+          <td style="font-weight:700;color:var(--primary);">
+            <i class="bi bi-bag-check me-1"></i> Bill #{{ bills|length - loop.index0 }}
+          </td>
+          <td style="font-weight:600;">{{ bill.date }}</td>
+          <td style="font-weight:600;">
+            {% if bill.party_name %}
+              <i class="bi bi-truck me-1" style="color:var(--primary);"></i>{{ bill.party_name }}
+            {% else %}<span style="color:var(--text-muted);">—</span>{% endif %}
+          </td>
+          <td>
+            <span style="background:var(--primary);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;">
+              {{ bill.lines|length }} item{{ 's' if bill.lines|length > 1 else '' }}
+            </span>
+          </td>
+          <td style="color:var(--warning);font-weight:600;">₹{{ "{:,.2f}".format(bill.gst_total) }}</td>
+          <td style="font-weight:800;color:var(--danger);font-size:16px;">₹{{ "{:,.2f}".format(bill.total) }}</td>
+          <td><i class="bi bi-chevron-down" id="icon-pbill-{{ loop.index }}"></i></td>
+        </tr>
+        <tr id="pbill-{{ loop.index }}" style="display:none;">
+          <td colspan="7" style="padding:0;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:var(--bg);">
+                  <th style="padding:8px 24px;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Product</th>
+                  <th style="padding:8px 12px;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Category</th>
+                  <th style="padding:8px 12px;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Qty</th>
+                  <th style="padding:8px 12px;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Unit Price</th>
+                  <th style="padding:8px 12px;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">GST</th>
+                  <th style="padding:8px 12px;font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Amount</th>
+                  <th style="padding:8px 12px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in bill.lines %}
+                <tr style="border-top:1px solid var(--border);">
+                  <td style="padding:9px 24px;font-weight:600;">{{ p.product.name if p.product else 'N/A' }}</td>
+                  <td style="padding:9px 12px;">
+                    <span style="background:var(--surface2);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;">
+                      {{ p.product.category if p.product else '—' }}
+                    </span>
+                  </td>
+                  <td style="padding:9px 12px;font-weight:700;color:var(--primary);">{{ p.quantity }}</td>
+                  <td style="padding:9px 12px;" class="text-mono">₹{{ "%.2f"|format(p.purchase_price) }}</td>
+                  <td style="padding:9px 12px;font-size:12px;">
+                    {% if p.gst_rate and p.gst_rate > 0 %}
+                      {{ p.gst_rate|int }}% (₹{{ "%.2f"|format(p.gst_amount or 0) }})
+                    {% else %}—{% endif %}
+                  </td>
+                  <td style="padding:9px 12px;font-weight:700;color:var(--danger);" class="text-mono">₹{{ "%.2f"|format(p.total_amount) }}</td>
+                  <td style="padding:9px 12px;">
+                    <form method="POST" action="/purchases/delete/{{ p.id }}" onsubmit="return confirm('Delete this purchase? Stock will be reduced.');">
+                      <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:14px;">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-bag d-block"></i>
+      <p>No purchase records found for this period.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Record Purchase Modal -->
+<div class="modal fade" id="purchaseModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-bag-plus me-2"></i>Record Purchase</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/purchases/record-bulk">
+        <div class="modal-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label-custom">Purchase Date</label>
+              <input class="form-control-custom" type="date" name="purchase_date" id="purchaseDate">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label-custom">Supplier / Party Name</label>
+              <input class="form-control-custom" type="text" name="party_name" placeholder="e.g. Sharma Traders">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label-custom">Notes (optional)</label>
+              <input class="form-control-custom" type="text" name="notes" placeholder="Invoice no...">
+            </div>
+          </div>
+
+          <div id="purchaseItemsContainer"></div>
+
+          <button type="button" class="btn-outline-custom mt-2" onclick="addPurchaseRow()" style="width:100%;">
+            <i class="bi bi-plus-lg"></i> Add Another Product
+          </button>
+
+          <!-- Totals -->
+          <div style="margin-top:16px;border-radius:10px;border:1.5px solid #dbeafe;overflow:hidden;">
+            <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#f8fafc;">
+              <span style="font-size:13px;color:var(--text-muted);font-weight:500;">Subtotal</span>
+              <span id="purchaseSubtotal" style="font-weight:700;">₹0.00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+              <span style="font-size:13px;color:var(--text-muted);font-weight:500;">GST Amount</span>
+              <span id="purchaseGst" style="font-weight:700;color:var(--warning);">₹0.00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:14px 16px;background:linear-gradient(135deg,#fff1f2,#fff7ed);">
+              <span style="font-weight:700;font-size:14px;">Grand Total</span>
+              <span id="purchaseGrandTotal" style="font-size:22px;font-weight:800;color:var(--danger);">₹0.00</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn-primary-custom" type="submit">
+            <i class="bi bi-check-lg"></i> Record Purchase & Update Stock
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PRODUCTS = [
+  {% for p in products %}
+  { id: {{ p.id }}, name: {{ p.name|tojson }}, category: {{ p.category|tojson }}, stock: {{ p.quantity }} },
+  {% endfor %}
+];
+
+let pRowCount = 0;
+
+function buildPOptions() {
+  const groups = {};
+  PRODUCTS.forEach(p => {
+    if (!groups[p.category]) groups[p.category] = [];
+    groups[p.category].push(p);
+  });
+  let html = '<option value="">-- Select Product --</option>';
+  Object.keys(groups).sort().forEach(cat => {
+    html += `<optgroup label="${cat}">`;
+    groups[cat].forEach(p => {
+      html += `<option value="${p.id}">${p.name} (Stock: ${p.stock})</option>`;
+    });
+    html += '</optgroup>';
+  });
+  html += '<option value="__new__">➕ Add New Product...</option>';
+  return html;
+}
+
+function addPurchaseRow() {
+  pRowCount++;
+  const id = pRowCount;
+  const div = document.createElement('div');
+  div.id = 'prow-' + id;
+  div.style = 'margin-bottom:12px;padding:12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);';
+  div.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 80px 100px 80px 110px 28px;gap:10px;align-items:center;">
+      <select class="form-control-custom form-select-custom" name="product_id[]" onchange="onProductChange(${id}, this)" required>
+        ${buildPOptions()}
+      </select>
+      <input class="form-control-custom" type="number" name="quantity[]" min="1" value="1"
+        placeholder="Qty" oninput="calcPurchase()" required style="text-align:center;">
+      <input class="form-control-custom" type="number" name="purchase_price[]" min="0" step="0.01"
+        placeholder="Price/unit" oninput="calcPurchase()" required>
+      <select class="form-control-custom form-select-custom" name="gst_rate[]" onchange="calcPurchase()" style="font-size:12px;">
+        <option value="0">No GST</option>
+        <option value="5">5%</option>
+        <option value="10">10%</option>
+        <option value="18">18%</option>
+      </select>
+      <div id="prow-total-${id}" style="font-weight:700;color:var(--danger);font-size:13px;text-align:right;">₹ —</div>
+      <button type="button" onclick="removePRow(${id})" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:18px;">
+        <i class="bi bi-x-circle"></i>
+      </button>
+    </div>
+    <!-- New product fields (hidden by default) -->
+    <div id="new-product-fields-${id}" style="display:none;margin-top:10px;display:none;">
+      <div style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:8px;"><i class="bi bi-plus-circle me-1"></i>New Product Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+        <div>
+          <label class="form-label-custom">Product Name *</label>
+          <input class="form-control-custom" type="text" name="new_product_name[]" placeholder="e.g. Basmati Rice">
+        </div>
+        <div>
+          <label class="form-label-custom">Category *</label>
+          <input class="form-control-custom" type="text" name="new_product_category[]" placeholder="e.g. Grocery">
+        </div>
+        <div>
+          <label class="form-label-custom">Selling Price *</label>
+          <input class="form-control-custom" type="number" name="new_product_price[]" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label class="form-label-custom">Low Stock Alert</label>
+          <input class="form-control-custom" type="number" name="new_product_threshold[]" min="0" value="10">
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('purchaseItemsContainer').appendChild(div);
+  calcPurchase();
+}
+
+function onProductChange(id, sel) {
+  const newFields = document.getElementById('new-product-fields-' + id);
+  if (sel.value === '__new__') {
+    newFields.style.display = 'block';
+    // make product_id not required since we'll create it
+    sel.removeAttribute('required');
+  } else {
+    newFields.style.display = 'none';
+    sel.setAttribute('required', '');
+  }
+  calcPurchase();
+}
+
+function removePRow(id) {
+  const el = document.getElementById('prow-' + id);
+  if (el) el.remove();
+  calcPurchase();
+}
+
+function calcPurchase() {
+  let subtotal = 0, gstTotal = 0;
+  document.querySelectorAll('[id^="prow-"]').forEach(row => {
+    const id = row.id.split('-')[1];
+    const qty   = parseFloat(row.querySelector('input[name="quantity[]"]')?.value) || 0;
+    const price = parseFloat(row.querySelector('input[name="purchase_price[]"]')?.value) || 0;
+    const gst   = parseFloat(row.querySelector('select[name="gst_rate[]"]')?.value) || 0;
+    const sub   = qty * price;
+    const gstAmt= sub * gst / 100;
+    const total = sub + gstAmt;
+    subtotal += sub;
+    gstTotal += gstAmt;
+    const el = document.getElementById('prow-total-' + id);
+    if (el) el.textContent = total ? '₹' + total.toFixed(2) : '₹ —';
+  });
+  document.getElementById('purchaseSubtotal').textContent    = '₹' + subtotal.toFixed(2);
+  document.getElementById('purchaseGst').textContent         = '₹' + gstTotal.toFixed(2);
+  document.getElementById('purchaseGrandTotal').textContent  = '₹' + (subtotal + gstTotal).toFixed(2);
+}
+
+function openPurchaseModal() {
+  document.getElementById('purchaseDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('purchaseItemsContainer').innerHTML = '';
+  pRowCount = 0;
+  addPurchaseRow();
+  new bootstrap.Modal(document.getElementById('purchaseModal')).show();
+}
+
+function toggleBill(id) {
+  const row  = document.getElementById(id);
+  const icon = document.getElementById('icon-' + id);
+  if (row.style.display === 'none') {
+    row.style.display = '';
+    if (icon) icon.className = 'bi bi-chevron-up';
+  } else {
+    row.style.display = 'none';
+    if (icon) icon.className = 'bi bi-chevron-down';
+  }
+}
+</script>
+{% endblock %}
